@@ -56,6 +56,34 @@ public class LoanService : ILoanService
         return list.Select(LoanDto.FromEntity).ToList();
     }
 
+    private const int DefaultLoanDays = 14;
+
+    public async Task<(bool Success, string? Error)> CheckOutAsync(int bookId, CancellationToken ct = default)
+    {
+        var (userId, _) = await GetCurrentUserAsync();
+        if (string.IsNullOrEmpty(userId))
+            return (false, "You must be signed in to borrow a book.");
+
+        var book = await _db.Books.FirstOrDefaultAsync(b => b.Id == bookId, ct);
+        if (book is null)
+            return (false, "Book not found.");
+        if (book.Status == BookStatus.Borrowed)
+            return (false, "This book is already borrowed.");
+
+        var dueDate = DateTime.UtcNow.AddDays(DefaultLoanDays);
+        var loan = new Loan
+        {
+            BookId = bookId,
+            UserId = userId,
+            BorrowedAt = DateTime.UtcNow,
+            DueDate = dueDate,
+        };
+        _db.Loans.Add(loan);
+        book.Status = BookStatus.Borrowed;
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
     public async Task<(bool Success, string? Error)> CheckInAsync(int loanId, CancellationToken ct = default)
     {
         var (_, isStaff) = await GetCurrentUserAsync();

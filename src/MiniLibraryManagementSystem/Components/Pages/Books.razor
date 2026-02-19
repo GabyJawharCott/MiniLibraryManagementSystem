@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject IBookService BookService
+@inject ILoanService LoanService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Books</PageTitle>
@@ -33,10 +34,7 @@ else
                 <th>Genre</th>
                 <th>Pages</th>
                 <th>Status</th>
-                @if (_isStaff)
-                {
-                    <th></th>
-                }
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -48,13 +46,17 @@ else
                     <td>@b.GenreName</td>
                     <td>@b.PageCount</td>
                     <td>@b.Status</td>
-                    @if (_isStaff)
-                    {
-                        <td>
+                    <td>
+                        @if (b.Status == "Available")
+                        {
+                            <button type="button" class="btn btn-sm btn-success me-1" disabled="@_borrowingId.HasValue" @onclick="() => BorrowAsync(b.Id)">Borrow</button>
+                        }
+                        @if (_isStaff)
+                        {
                             <a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-primary me-1">Edit</a>
                             <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => _bookToDelete = b">Delete</button>
-                        </td>
-                    }
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
@@ -79,6 +81,28 @@ else
     private string _error = "";
     private bool _isStaff;
     private BookDto? _bookToDelete;
+    private int? _borrowingId;
+
+    private async Task BorrowAsync(int bookId)
+    {
+        _borrowingId = bookId;
+        _error = "";
+        try
+        {
+            var (success, err) = await LoanService.CheckOutAsync(bookId);
+            if (success)
+            {
+                _books = await BookService.GetBooksAsync() ?? new();
+            }
+            else
+                _error = err ?? "Could not borrow book.";
+        }
+        finally
+        {
+            _borrowingId = null;
+            StateHasChanged();
+        }
+    }
 
     private async Task ConfirmDelete()
     {

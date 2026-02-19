@@ -26,6 +26,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
                 .WithMany(x => x.Books)
                 .HasForeignKey(x => x.GenreId)
                 .OnDelete(DeleteBehavior.Restrict);
+            b.HasQueryFilter(x => !x.IsDeleted);
         });
 
         builder.Entity<Loan>(b =>

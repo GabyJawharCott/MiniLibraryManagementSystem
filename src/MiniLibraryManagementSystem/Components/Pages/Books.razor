@@ -51,7 +51,8 @@ else
                     @if (_isStaff)
                     {
                         <td>
-                            <a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-primary me-1">Edit</a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => _bookToDelete = b">Delete</button>
                         </td>
                     }
                 </tr>
@@ -62,6 +63,14 @@ else
     {
         <p class="text-muted">No books yet. Add one to get started.</p>
     }
+    @if (_bookToDelete is not null)
+    {
+        <div class="alert alert-warning mt-3 d-flex align-items-center gap-2 flex-wrap">
+            <span>Delete &quot;@_bookToDelete.Title&quot;? This will remove it from the list.</span>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="ConfirmDelete">Confirm</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => _bookToDelete = null">Cancel</button>
+        </div>
+    }
 }
 
 @code {
@@ -69,6 +78,23 @@ else
     private bool _loading = true;
     private string _error = "";
     private bool _isStaff;
+    private BookDto? _bookToDelete;
+
+    private async Task ConfirmDelete()
+    {
+        if (_bookToDelete is null) return;
+        var id = _bookToDelete.Id;
+        _bookToDelete = null;
+        var (success, err) = await BookService.DeleteBookAsync(id);
+        if (success)
+        {
+            _error = "";
+            _books = await BookService.GetBooksAsync() ?? new();
+        }
+        else
+            _error = err ?? "Delete failed.";
+        StateHasChanged();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

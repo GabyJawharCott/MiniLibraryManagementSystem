@@ -84,4 +84,19 @@ public class BookService : IBookService
         await _db.SaveChangesAsync(ct);
         return (true, BookDto.FromEntity(book), null);
     }
+
+    public async Task<(bool Success, string? Error)> DeleteBookAsync(int id, CancellationToken ct = default)
+    {
+        if (!await IsAdminOrLibrarianAsync())
+            return (false, "You do not have permission to delete books. Admin or Librarian role required.");
+
+        var book = await _db.Books.FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (book is null)
+            return (false, "Book not found.");
+
+        book.IsDeleted = true;
+        book.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
 }

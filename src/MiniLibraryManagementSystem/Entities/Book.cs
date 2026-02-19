@@ -23,5 +23,8 @@ public class Book
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Soft delete: when true, the book is hidden from lists and cannot be loaned.</summary>
+    public bool IsDeleted { get; set; }
+
     public ICollection<Loan> Loans { get; set; } = new List<Loan>();
 }

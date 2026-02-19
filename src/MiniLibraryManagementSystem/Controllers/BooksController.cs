@@ -93,9 +93,10 @@ public class BooksController : ControllerBase
     [Authorize(Roles = "Admin,Librarian")]
     public async Task<ActionResult> DeleteBook(int id, CancellationToken ct)
     {
-        var book = await _db.Books.FindAsync([id], ct);
+        var book = await _db.Books.FirstOrDefaultAsync(b => b.Id == id, ct);
         if (book is null) return NotFound();
-        _db.Books.Remove(book);
+        book.IsDeleted = true;
+        book.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }

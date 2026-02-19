@@ -56,6 +56,39 @@ main {
         height: 100vh;
         position: sticky;
         top: 0;
+        transition: width 0.2s ease;
+    }
+
+    .sidebar:has(.sidebar-collapse-checkbox:checked) {
+        width: 4rem;
+    }
+
+    .sidebar:has(.sidebar-collapse-checkbox:checked) .navbar-brand,
+    .sidebar:has(.sidebar-collapse-checkbox:checked) .nav-link-text {
+        overflow: hidden;
+        white-space: nowrap;
+        width: 0;
+        padding: 0;
+        margin: 0;
+        opacity: 0;
+        display: inline-block;
+        max-width: 0;
+    }
+
+    .sidebar:has(.sidebar-collapse-checkbox:checked) .nav-link {
+        justify-content: center;
+    }
+
+    .sidebar:has(.sidebar-collapse-checkbox:checked) .nav-item ::deep .bi {
+        margin-right: 0;
+    }
+
+    .sidebar:has(.sidebar-collapse-checkbox:checked) .top-row .d-flex {
+        justify-content: center;
+    }
+
+    .sidebar:has(.sidebar-collapse-checkbox:checked) .sidebar-toggle {
+        margin-left: 0 !important;
     }
 
     .top-row {

@@ -35,6 +35,9 @@ A small library management app built with **.NET 9**, Blazor, and SQL Server. It
 3. **Configure (optional)**
    - Edit `MiniLibraryManagementSystem/appsettings.Development.json` to change the connection string if not using LocalDB.
    - For **email on return**, set `SmtpSettings` in `appsettings.json` (Host, Port, From, User, Password, EnableSsl).
+   - **Sign in with Microsoft**: In [Azure Portal → Microsoft Entra ID → App registrations](https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade), create an app (or use an existing one). When creating, set **Supported account types** to **“Accounts in any organizational directory and personal Microsoft accounts”** so both work/school and personal (e.g. Outlook.com) accounts work. Under **Authentication**, add a **Web** platform **Redirect URI**: `https://localhost:7013/signin-microsoft` (use your app’s HTTPS port if different). Under **Certificates & secrets**, create a client secret. In `appsettings.json` (or [User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets)) set:
+     - `Authentication:Microsoft:ClientId` = Application (client) ID from the app overview.
+     - `Authentication:Microsoft:ClientSecret` = the secret **Value** (not Secret ID).
 
 4. **Run**
    ```bash

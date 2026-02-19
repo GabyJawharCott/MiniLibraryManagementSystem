@@ -1,7 +1,8 @@
 @page "/books"
 @rendermode InteractiveServer
-@inject IHttpClientFactory HttpClientFactory
-@inject NavigationManager Navigation
+@attribute [Authorize]
+@inject IBookService BookService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Books</PageTitle>
 
@@ -18,7 +19,10 @@ else if (_error is { Length: > 0 })
 else
 {
     <p class="mb-3">
-        <a href="/books/add" class="btn btn-primary">Add book</a>
+        @if (_isStaff)
+        {
+            <a href="/books/add" class="btn btn-primary me-2">Add book</a>
+        }
         <a href="/search" class="btn btn-outline-secondary">Search</a>
     </p>
     <table class="table table-striped">
@@ -29,7 +33,10 @@ else
                 <th>Genre</th>
                 <th>Pages</th>
                 <th>Status</th>
-                <th></th>
+                @if (_isStaff)
+                {
+                    <th></th>
+                }
             </tr>
         </thead>
         <tbody>
@@ -41,9 +48,12 @@ else
                     <td>@b.GenreName</td>
                     <td>@b.PageCount</td>
                     <td>@b.Status</td>
-                    <td>
-                        <a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                    </td>
+                    @if (_isStaff)
+                    {
+                        <td>
+                            <a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        </td>
+                    }
                 </tr>
             }
         </tbody>
@@ -58,14 +68,16 @@ else
     private List<BookDto> _books = new();
     private bool _loading = true;
     private string _error = "";
+    private bool _isStaff;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
         try
         {
-            var client = HttpClientFactory.CreateClient("Api");
-            var list = await client.GetFromJsonAsync<List<BookDto>>("api/books");
-            _books = list ?? new();
+            var state = await AuthStateProvider.GetAuthenticationStateAsync();
+            _isStaff = state.User?.IsInRole("Admin") == true || state.User?.IsInRole("Librarian") == true;
+            _books = await BookService.GetBooksAsync() ?? new();
         }
         catch (Exception ex)
         {
@@ -74,6 +86,7 @@ else
         finally
         {
             _loading = false;
+            StateHasChanged();
         }
     }
 }

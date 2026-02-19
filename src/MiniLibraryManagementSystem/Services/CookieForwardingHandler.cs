@@ -16,7 +16,7 @@ public class CookieForwardingHandler : DelegatingHandler
     {
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext?.Request.Headers.Cookie is { } cookieHeader && !string.IsNullOrEmpty(cookieHeader))
-            request.Headers.Add("Cookie", cookieHeader.ToString());
+            request.Headers.TryAddWithoutValidation("Cookie", cookieHeader.ToString());
 
         return await base.SendAsync(request, cancellationToken);
     }

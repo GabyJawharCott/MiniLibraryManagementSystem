@@ -1,20 +1,30 @@
 @page "/books/add"
 @page "/books/edit/{Id:int}"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject IHttpClientFactory HttpClientFactory
+@inject IBookService BookService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>@(Id == 0 ? "Add book" : "Edit book")</PageTitle>
 
 <h1>@(Id == 0 ? "Add book" : "Edit book")</h1>
 
-@if (_genres.Count == 0 && !_loading)
+@if (_accessDenied)
+{
+    <div class="alert alert-warning">
+        <strong>Access denied.</strong> Only Admin or Librarian can add or edit books.
+    </div>
+    <a href="/books" class="btn btn-outline-secondary">Back to Books</a>
+}
+else if (_genres.Count == 0 && !_loading)
 {
     <p class="text-danger">Could not load genres.</p>
 }
 else
 {
-    <EditForm Model="_model" OnValidSubmit="SaveAsync">
+    <EditForm Model="_model" FormName="book-form" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
         <div class="mb-3">
             <label class="form-label">Title</label>
@@ -65,9 +75,18 @@ else
     private bool _loading = true;
     private bool _saving;
     private string _error = "";
+    private bool _accessDenied;
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        var isStaff = state.User?.IsInRole("Admin") == true || state.User?.IsInRole("Librarian") == true;
+        if (!isStaff)
+        {
+            _accessDenied = true;
+            _loading = false;
+            return;
+        }
         var client = HttpClientFactory.CreateClient("Api");
         var genres = await client.GetFromJsonAsync<List<GenreItem>>("api/genres");
         _genres = genres ?? new();
@@ -102,16 +121,28 @@ else
         _saving = true;
         try
         {
-            var client = HttpClientFactory.CreateClient("Api");
             if (Id == 0)
             {
-                await client.PostAsJsonAsync("api/books", _model);
+                var dto = new CreateBookDto(_model.Title, _model.Author, _model.PageCount, _model.GenreId, _model.ISBN, _model.Description, _model.CoverUrl, _model.PublishYear);
+                var (success, _, err) = await BookService.CreateBookAsync(dto);
+                if (success)
+                {
+                    Navigation.NavigateTo("/books");
+                    return;
+                }
+                _error = err ?? "Failed to create book.";
             }
             else
             {
-                await client.PutAsJsonAsync("api/books/" + Id, _model);
+                var dto = new UpdateBookDto(_model.Title, _model.Author, _model.PageCount, _model.GenreId, _model.ISBN, _model.Description, _model.CoverUrl, _model.PublishYear);
+                var (success, _, err) = await BookService.UpdateBookAsync(Id, dto);
+                if (success)
+                {
+                    Navigation.NavigateTo("/books");
+                    return;
+                }
+                _error = err ?? "Failed to update book.";
             }
-            Navigation.NavigateTo("/books");
         }
         catch (Exception ex)
         {

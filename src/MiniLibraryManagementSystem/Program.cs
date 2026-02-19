@@ -20,23 +20,38 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+// Use Blazor login page instead of /Account/Login for cookie redirects (e.g. after logout)
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/login";
+    options.AccessDeniedPath = "/login";
+});
+
 var authBuilder = builder.Services.AddAuthentication();
+// Only register Google/Microsoft when ClientId is set (OAuthOptions rejects empty ClientId).
 var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
 var microsoftClientId = builder.Configuration["Authentication:Microsoft:ClientId"];
-if (!string.IsNullOrEmpty(googleClientId))
+if (!string.IsNullOrWhiteSpace(googleClientId))
+{
     authBuilder.AddGoogle(options =>
     {
         options.ClientId = googleClientId;
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
     });
-if (!string.IsNullOrEmpty(microsoftClientId))
+}
+if (!string.IsNullOrWhiteSpace(microsoftClientId))
+{
     authBuilder.AddMicrosoftAccount(options =>
     {
         options.ClientId = microsoftClientId;
         options.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"] ?? "";
     });
+}
 
 builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>();
+builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<ILoanService, LoanService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient("Api", (sp, client) =>
 {

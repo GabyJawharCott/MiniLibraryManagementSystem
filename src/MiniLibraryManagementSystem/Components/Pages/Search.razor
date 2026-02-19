@@ -1,6 +1,7 @@
 @page "/search"
 @rendermode InteractiveServer
-@inject IHttpClientFactory HttpClientFactory
+@attribute [Authorize]
+@inject ISearchService SearchService
 
 <PageTitle>Search books</PageTitle>
 
@@ -79,15 +80,17 @@ else
     private int? _minPages;
     private int? _maxPages;
     private List<BookDto> _results = new();
-    private List<GenreItem> _genres = new();
+    private List<GenreOption> _genres = new();
     private bool _loading;
     private bool _searched;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var client = HttpClientFactory.CreateClient("Api");
-        var list = await client.GetFromJsonAsync<List<GenreItem>>("api/genres");
+        if (!firstRender) return;
+        var list = await SearchService.GetGenresAsync();
         _genres = list ?? new();
+        await SearchAsync();
+        StateHasChanged();
     }
 
     private async Task SearchAsync()
@@ -96,19 +99,11 @@ else
         _searched = true;
         try
         {
-            var client = HttpClientFactory.CreateClient("Api");
-            var url = "api/search?q=" + Uri.EscapeDataString(_q);
-            if (_genreId > 0) url += "&genreId=" + _genreId;
-            if (_minPages.HasValue) url += "&minPages=" + _minPages;
-            if (_maxPages.HasValue) url += "&maxPages=" + _maxPages;
-            var list = await client.GetFromJsonAsync<List<BookDto>>(url);
-            _results = list ?? new();
+            _results = await SearchService.SearchAsync(_q, null, _minPages, _maxPages, _genreId > 0 ? _genreId : null) ?? new();
         }
         finally
         {
             _loading = false;
         }
     }
-
-    private record GenreItem(int Id, string Name);
 }

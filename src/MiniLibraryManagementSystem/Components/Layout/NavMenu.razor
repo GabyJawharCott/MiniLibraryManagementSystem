@@ -1,48 +1,59 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">MiniLibraryManagementSystem</a>
+<input type="checkbox" id="sidebar-collapse" class="sidebar-collapse-checkbox" aria-label="Collapse sidebar" />
+<div class="top-row ps-2 navbar navbar-dark">
+    <div class="d-flex align-items-center w-100">
+        <a class="navbar-brand text-nowrap" href="dashboard">Gaby's Books</a>
+        <label for="sidebar-collapse" class="sidebar-toggle btn btn-link p-0 ms-auto" title="Collapse sidebar">
+            <span class="sidebar-toggle-icon sidebar-toggle-collapse">◀</span>
+            <span class="sidebar-toggle-icon sidebar-toggle-expand">▶</span>
+        </label>
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" id="nav-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+<div class="nav-scrollable" onclick="document.getElementById('nav-toggler')?.click()">
     <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+        <div class="nav-item px-2">
+            <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.Prefix">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span>
+                <span class="nav-link-text">Home</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="dashboard">
-                <span class="bi bi-speedometer2" aria-hidden="true"></span> Dashboard
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
+        <div class="nav-item px-2">
             <NavLink class="nav-link" href="books">
-                <span class="bi bi-book" aria-hidden="true"></span> Books
+                <span class="bi bi-book" aria-hidden="true"></span>
+                <span class="nav-link-text">Books</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
+        <div class="nav-item px-2">
             <NavLink class="nav-link" href="search">
-                <span class="bi bi-search" aria-hidden="true"></span> Search
+                <span class="bi bi-search" aria-hidden="true"></span>
+                <span class="nav-link-text">Search</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
+        <div class="nav-item px-2">
             <NavLink class="nav-link" href="loans">
-                <span class="bi bi-journal-check" aria-hidden="true"></span> Loans
+                <span class="bi bi-journal-check" aria-hidden="true"></span>
+                <span class="nav-link-text">Loans</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
+        <div class="nav-item px-2">
             <AuthorizeView>
                 <Authorized>
-                    <a href="Account/Logout" class="nav-link">Logout</a>
+                    <a href="Account/Logout" class="nav-link">
+                        <span class="bi bi-box-arrow-right-nav" aria-hidden="true"></span>
+                        <span class="nav-link-text">Logout</span>
+                    </a>
                 </Authorized>
                 <NotAuthorized>
-                    <NavLink class="nav-link" href="login">Login</NavLink>
+                    <NavLink class="nav-link" href="login">
+                        <span class="bi bi-box-arrow-in-right-nav" aria-hidden="true"></span>
+                        <span class="nav-link-text">Login</span>
+                    </NavLink>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
     </nav>
 </div>
+
 

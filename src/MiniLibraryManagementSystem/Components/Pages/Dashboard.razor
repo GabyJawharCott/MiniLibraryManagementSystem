@@ -1,77 +1,107 @@
 @page "/dashboard"
 @rendermode InteractiveServer
-@inject IHttpClientFactory HttpClientFactory
+@attribute [Authorize]
+@inject IBookService BookService
+@inject ILoanService LoanService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Dashboard</PageTitle>
 
 <h1>Dashboard</h1>
 
-@if (_loading)
-{
-    <p>Loading…</p>
-}
-else
-{
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Total books</h5>
-                    <p class="card-text display-6">@_totalBooks</p>
+<ErrorBoundary>
+    <ChildContent>
+        @if (_loading)
+        {
+            <p>Loading…</p>
+        }
+        else if (_error is { Length: > 0 })
+        {
+            <div class="alert alert-warning">
+                <strong>Could not load dashboard.</strong> @_error
+                <p class="mb-0 mt-2"><a href="/dashboard" class="alert-link">Retry</a></p>
+            </div>
+        }
+        else
+        {
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Total books</h5>
+                            <p class="card-text display-6">@_totalBooks</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Currently borrowed</h5>
+                            <p class="card-text display-6">@_activeLoans</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Overdue</h5>
+                            <p class="card-text display-6">@_overdue</p>
+                        </div>
+                    </div>
                 </div>
             </div>
+            <h2 class="h5 mt-4">Quick links</h2>
+            <p>
+                <a href="/books" class="btn btn-primary me-2">Books</a>
+                @if (_isStaff)
+                {
+                    <a href="/books/add" class="btn btn-outline-primary me-2">Add book</a>
+                }
+                <a href="/search" class="btn btn-outline-primary me-2">Search</a>
+                <a href="/loans" class="btn btn-outline-primary">Loans</a>
+            </p>
+        }
+    </ChildContent>
+    <ErrorContent>
+        <div class="alert alert-danger">
+            <strong>Something went wrong.</strong>
+            <p class="mb-0 mt-2"><a href="/dashboard" class="alert-link">Reload dashboard</a></p>
         </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Currently borrowed</h5>
-                    <p class="card-text display-6">@_activeLoans</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Overdue</h5>
-                    <p class="card-text display-6">@_overdue</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <h2 class="h5 mt-4">Quick links</h2>
-    <p>
-        <a href="/books" class="btn btn-primary me-2">Books</a>
-        <a href="/search" class="btn btn-outline-primary me-2">Search</a>
-        <a href="/loans" class="btn btn-outline-primary">Loans</a>
-    </p>
-}
+    </ErrorContent>
+</ErrorBoundary>
 
 @code {
     private int _totalBooks;
     private int _activeLoans;
     private int _overdue;
     private bool _loading = true;
+    private string _error = "";
+    private bool _isStaff;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
+        _error = "";
         try
         {
-            var client = HttpClientFactory.CreateClient("Api");
-            var books = await client.GetFromJsonAsync<List<BookDto>>("api/books");
+            var state = await AuthStateProvider.GetAuthenticationStateAsync();
+            _isStaff = state.User?.IsInRole("Admin") == true || state.User?.IsInRole("Librarian") == true;
+            var books = await BookService.GetBooksAsync();
             _totalBooks = books?.Count ?? 0;
-            var loans = await client.GetFromJsonAsync<List<LoanDto>>("api/loans?activeOnly=false");
-            var list = loans ?? new();
+            var loans = await LoanService.GetLoansAsync(activeOnly: false);
+            var list = loans ?? new List<LoanDto>();
             _activeLoans = list.Count(l => l.ReturnedAt == null);
             var now = DateTime.UtcNow.Date;
             _overdue = list.Count(l => l.ReturnedAt == null && l.DueDate.Date < now);
         }
-        catch { /* ignore */ }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
         finally
         {
             _loading = false;
+            StateHasChanged();
         }
     }
-
-    private record BookDto(int Id, string Title, string Author, int PageCount, int GenreId, string GenreName, string? ISBN, string? Description, string? CoverUrl, int? PublishYear, int? EstimatedReadingMinutes, string? EaseOfReading, string Status, DateTime CreatedAt, DateTime UpdatedAt);
-    private record LoanDto(int Id, int BookId, string BookTitle, string? GenreName, string UserId, string? UserEmail, DateTime BorrowedAt, DateTime DueDate, DateTime? ReturnedAt, DateTime CreatedAt);
 }

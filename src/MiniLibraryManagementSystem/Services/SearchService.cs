@@ -13,7 +13,7 @@ public class SearchService : ISearchService
         _db = db;
     }
 
-    public async Task<List<BookDto>> SearchAsync(string? q, string? author, int? minPages, int? maxPages, int? genreId, CancellationToken ct = default)
+    public async Task<List<BookDto>> SearchAsync(string? q, string? author, int? minPages, int? maxPages, int? genreId, string? level = null, CancellationToken ct = default)
     {
         var query = _db.Books.Include(b => b.Genre).AsQueryable();
 
@@ -33,6 +33,8 @@ public class SearchService : ISearchService
             query = query.Where(b => b.PageCount <= maxPages.Value);
         if (genreId.HasValue && genreId.Value > 0)
             query = query.Where(b => b.GenreId == genreId.Value);
+        if (!string.IsNullOrWhiteSpace(level))
+            query = query.Where(b => b.EaseOfReading != null && b.EaseOfReading == level);
 
         var list = await query.OrderBy(b => b.Title).Select(b => BookDto.FromEntity(b)).ToListAsync(ct);
         return list;

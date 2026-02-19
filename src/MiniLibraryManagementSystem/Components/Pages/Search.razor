@@ -7,18 +7,28 @@
 
 <h1>Search books</h1>
 
-<div class="row mb-4">
+<form class="row mb-4" @onsubmit="SearchAsync" @onsubmit:preventDefault>
     <div class="col-md-4 mb-2">
         <label class="form-label">Text</label>
         <input type="text" class="form-control" @bind="_q" @bind:event="oninput" placeholder="Title or author" />
     </div>
     <div class="col-md-2 mb-2">
         <label class="form-label">Genre</label>
-        <select class="form-select" @bind="_genreId">
+        <select class="form-select" @bind="_genreId" @bind:after="SearchAsync">
             <option value="0">All</option>
             @foreach (var g in _genres)
             {
                 <option value="@g.Id">@g.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2 mb-2">
+        <label class="form-label">Level</label>
+        <select class="form-select" @bind="_level">
+            <option value="">All</option>
+            @foreach (var l in _levels)
+            {
+                <option value="@l">@l</option>
             }
         </select>
     </div>
@@ -31,9 +41,9 @@
         <input type="number" class="form-control" @bind="_maxPages" placeholder="Max" />
     </div>
     <div class="col-md-2 d-flex align-items-end mb-2">
-        <button class="btn btn-primary w-100" @onclick="SearchAsync">Search</button>
+        <button type="submit" class="btn btn-primary w-100">Search</button>
     </div>
-</div>
+</form>
 
 @if (_loading)
 {
@@ -75,8 +85,11 @@ else
 }
 
 @code {
+    private static readonly string[] _levels = { "Easy", "Medium", "Hard" };
+
     private string _q = "";
     private int _genreId;
+    private string? _level;
     private int? _minPages;
     private int? _maxPages;
     private List<BookDto> _results = new();
@@ -99,7 +112,7 @@ else
         _searched = true;
         try
         {
-            _results = await SearchService.SearchAsync(_q, null, _minPages, _maxPages, _genreId > 0 ? _genreId : null) ?? new();
+            _results = await SearchService.SearchAsync(_q, null, _minPages, _maxPages, _genreId > 0 ? _genreId : null, _level) ?? new();
         }
         finally
         {

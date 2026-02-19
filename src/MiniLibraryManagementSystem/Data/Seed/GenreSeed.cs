@@ -9,7 +9,7 @@ public static class GenreSeed
     {
         if (await db.Genres.AnyAsync(ct)) return;
 
-        var genres = new[] { "Fiction", "Non-Fiction", "Science", "History", "Biography", "Children", "Other" };
+        var genres = new[] { "Fiction", "Non-Fiction", "Science", "History", "Biography", "Children", "Finance", "Self Help", "Other" };
         foreach (var name in genres)
             db.Genres.Add(new Genre { Name = name });
         await db.SaveChangesAsync(ct);

@@ -40,7 +40,7 @@ public class AccountController : Controller
         var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
         if (result.Succeeded)
         {
-            return LocalRedirect(returnUrl ?? "/dashboard");
+            return LocalRedirect(returnUrl ?? "/");
         }
 
         if (result.IsLockedOut)
@@ -58,7 +58,7 @@ public class AccountController : Controller
         await _userManager.AddToRoleAsync(user, RoleSeed.Member);
         await _userManager.AddLoginAsync(user, info);
         await _signInManager.SignInAsync(user, isPersistent: false);
-        return LocalRedirect(returnUrl ?? "/dashboard");
+        return LocalRedirect(returnUrl ?? "/");
     }
 
     [HttpGet("Logout")]
@@ -66,6 +66,6 @@ public class AccountController : Controller
     public async Task<IActionResult> Logout([FromQuery] string? returnUrl = null)
     {
         await _signInManager.SignOutAsync();
-        return LocalRedirect(returnUrl ?? "/login");
+        return LocalRedirect(returnUrl ?? "/");
     }
 }

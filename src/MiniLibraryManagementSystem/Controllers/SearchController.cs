@@ -8,7 +8,7 @@ namespace MiniLibraryManagementSystem.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[AllowAnonymous]
 public class SearchController : ControllerBase
 {
     private readonly ApplicationDbContext _db;

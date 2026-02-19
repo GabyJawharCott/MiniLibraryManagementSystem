@@ -21,6 +21,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks(CancellationToken ct)
     {
         var list = await _db.Books
@@ -32,6 +33,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [AllowAnonymous]
     public async Task<ActionResult<BookDto>> GetBook(int id, CancellationToken ct)
     {
         var book = await _db.Books.Include(b => b.Genre).FirstOrDefaultAsync(b => b.Id == id, ct);

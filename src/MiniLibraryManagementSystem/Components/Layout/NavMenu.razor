@@ -9,7 +9,7 @@
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.Prefix">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
@@ -39,7 +39,7 @@
                     <a href="Account/Logout" class="nav-link">Logout</a>
                 </Authorized>
                 <NotAuthorized>
-                    <NavLink class="nav-link" href="login">Sign in</NavLink>
+                    <NavLink class="nav-link" href="login">Login</NavLink>
                 </NotAuthorized>
             </AuthorizeView>
         </div>

@@ -1,0 +1,80 @@
+@page "/books"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Books</PageTitle>
+
+<h1>Books</h1>
+
+@if (_loading)
+{
+    <p>Loading…</p>
+}
+else if (_error is { Length: > 0 })
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else
+{
+    <p class="mb-3">
+        <a href="/books/add" class="btn btn-primary">Add book</a>
+        <a href="/search" class="btn btn-outline-secondary">Search</a>
+    </p>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Genre</th>
+                <th>Pages</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var b in _books)
+            {
+                <tr>
+                    <td>@b.Title</td>
+                    <td>@b.Author</td>
+                    <td>@b.GenreName</td>
+                    <td>@b.PageCount</td>
+                    <td>@b.Status</td>
+                    <td>
+                        <a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    if (_books.Count == 0)
+    {
+        <p class="text-muted">No books yet. Add one to get started.</p>
+    }
+}
+
+@code {
+    private List<BookDto> _books = new();
+    private bool _loading = true;
+    private string _error = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("Api");
+            var list = await client.GetFromJsonAsync<List<BookDto>>("api/books");
+            _books = list ?? new();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

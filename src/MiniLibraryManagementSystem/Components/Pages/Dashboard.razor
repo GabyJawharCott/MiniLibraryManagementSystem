@@ -1,0 +1,78 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Dashboard</PageTitle>
+
+<h1>Dashboard</h1>
+
+@if (_loading)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total books</h5>
+                    <p class="card-text display-6">@_totalBooks</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Currently borrowed</h5>
+                    <p class="card-text display-6">@_activeLoans</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Overdue</h5>
+                    <p class="card-text display-6">@_overdue</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <h2 class="h5 mt-4">Quick links</h2>
+    <p>
+        <a href="/books" class="btn btn-primary me-2">Books</a>
+        <a href="/search" class="btn btn-outline-primary me-2">Search</a>
+        <a href="/loans" class="btn btn-outline-primary">Loans</a>
+    </p>
+}
+
+@code {
+    private int _totalBooks;
+    private int _activeLoans;
+    private int _overdue;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("Api");
+            var books = await client.GetFromJsonAsync<List<BookDto>>("api/books");
+            _totalBooks = books?.Count ?? 0;
+            var loans = await client.GetFromJsonAsync<List<LoanDto>>("api/loans?activeOnly=false");
+            var list = loans ?? new();
+            _activeLoans = list.Count(l => l.ReturnedAt == null);
+            var now = DateTime.UtcNow.Date;
+            _overdue = list.Count(l => l.ReturnedAt == null && l.DueDate.Date < now);
+        }
+        catch { /* ignore */ }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private record BookDto(int Id, string Title, string Author, int PageCount, int GenreId, string GenreName, string? ISBN, string? Description, string? CoverUrl, int? PublishYear, int? EstimatedReadingMinutes, string? EaseOfReading, string Status, DateTime CreatedAt, DateTime UpdatedAt);
+    private record LoanDto(int Id, int BookId, string BookTitle, string? GenreName, string UserId, string? UserEmail, DateTime BorrowedAt, DateTime DueDate, DateTime? ReturnedAt, DateTime CreatedAt);
+}

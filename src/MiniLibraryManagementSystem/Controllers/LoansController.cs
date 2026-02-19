@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiniLibraryManagementSystem.Data;
@@ -9,16 +10,22 @@ namespace MiniLibraryManagementSystem.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class LoansController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly IEmailNotificationService _email;
+    private readonly IHttpContextAccessor _httpContext;
 
-    public LoansController(ApplicationDbContext db, IEmailNotificationService email)
+    public LoansController(ApplicationDbContext db, IEmailNotificationService email, IHttpContextAccessor httpContext)
     {
         _db = db;
         _email = email;
+        _httpContext = httpContext;
     }
+
+    private string? CurrentUserId => _httpContext.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    private bool IsStaff => _httpContext.HttpContext?.User?.IsInRole("Admin") == true || _httpContext.HttpContext?.User?.IsInRole("Librarian") == true;
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<LoanDto>>> GetLoans(bool? activeOnly, CancellationToken ct)
@@ -27,6 +34,8 @@ public class LoansController : ControllerBase
             .Include(l => l.Book).ThenInclude(b => b!.Genre)
             .Include(l => l.User)
             .AsQueryable();
+        if (!IsStaff && CurrentUserId != null)
+            query = query.Where(l => l.UserId == CurrentUserId);
         if (activeOnly == true)
             query = query.Where(l => l.ReturnedAt == null);
         var list = await query.OrderByDescending(l => l.BorrowedAt).Select(l => LoanDto.FromEntity(l)).ToListAsync(ct);
@@ -36,6 +45,10 @@ public class LoansController : ControllerBase
     [HttpPost("check-out")]
     public async Task<ActionResult<LoanDto>> CheckOut([FromBody] CheckOutDto dto, CancellationToken ct)
     {
+        var userId = CurrentUserId;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        if (!IsStaff) dto = dto with { UserId = userId };
+
         var book = await _db.Books.FindAsync([dto.BookId], ct);
         if (book is null) return NotFound("Book not found");
         if (book.Status == BookStatus.Borrowed) return BadRequest("Book is already borrowed");
@@ -58,6 +71,7 @@ public class LoansController : ControllerBase
     }
 
     [HttpPost("{id:int}/check-in")]
+    [Authorize(Roles = "Admin,Librarian")]
     public async Task<ActionResult<LoanDto>> CheckIn(int id, CancellationToken ct)
     {
         var loan = await _db.Loans.Include(l => l.Book).Include(l => l.User).FirstOrDefaultAsync(l => l.Id == id, ct);

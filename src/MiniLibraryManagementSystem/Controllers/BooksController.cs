@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiniLibraryManagementSystem.Data;
@@ -9,6 +10,7 @@ namespace MiniLibraryManagementSystem.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class BooksController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -38,6 +40,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Librarian")]
     public async Task<ActionResult<BookDto>> CreateBook([FromBody] CreateBookDto dto, CancellationToken ct)
     {
         var book = new Book
@@ -62,6 +65,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin,Librarian")]
     public async Task<ActionResult<BookDto>> UpdateBook(int id, [FromBody] UpdateBookDto dto, CancellationToken ct)
     {
         var book = await _db.Books.Include(b => b.Genre).FirstOrDefaultAsync(b => b.Id == id, ct);
@@ -84,6 +88,7 @@ public class BooksController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin,Librarian")]
     public async Task<ActionResult> DeleteBook(int id, CancellationToken ct)
     {
         var book = await _db.Books.FindAsync([id], ct);

@@ -1,7 +1,14 @@
-﻿@page "/"
+@page "/home"
+@attribute [Authorize]
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Mini Library Management System</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Mini Library Management System</h1>
 
-Welcome to your new app.
+<p>Welcome. Browse books, search the catalog, and manage loans.</p>
+
+<p>
+    <a href="/dashboard" class="btn btn-primary me-2">Dashboard</a>
+    <a href="/books" class="btn btn-outline-primary me-2">Books</a>
+    <a href="/search" class="btn btn-outline-primary">Search</a>
+</p>

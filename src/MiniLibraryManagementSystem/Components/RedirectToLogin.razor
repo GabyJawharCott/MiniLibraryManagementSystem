@@ -1,0 +1,15 @@
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<div class="d-flex flex-column align-items-center justify-content-center min-vh-50 p-4">
+    <p class="text-muted">Redirecting to sign in…</p>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        var loginUrl = "/login";
+        if (!Navigation.Uri.EndsWith(loginUrl, StringComparison.OrdinalIgnoreCase))
+            Navigation.NavigateTo(loginUrl, forceLoad: true);
+    }
+}

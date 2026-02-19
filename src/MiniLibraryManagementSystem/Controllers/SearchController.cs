@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiniLibraryManagementSystem.Data;
@@ -7,6 +8,7 @@ namespace MiniLibraryManagementSystem.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class SearchController : ControllerBase
 {
     private readonly ApplicationDbContext _db;

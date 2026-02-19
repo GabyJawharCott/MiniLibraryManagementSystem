@@ -20,7 +20,32 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+var authBuilder = builder.Services.AddAuthentication();
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var microsoftClientId = builder.Configuration["Authentication:Microsoft:ClientId"];
+if (!string.IsNullOrEmpty(googleClientId))
+    authBuilder.AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+    });
+if (!string.IsNullOrEmpty(microsoftClientId))
+    authBuilder.AddMicrosoftAccount(options =>
+    {
+        options.ClientId = microsoftClientId;
+        options.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"] ?? "";
+    });
+
 builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient("Api", (sp, client) =>
+{
+    var accessor = sp.GetRequiredService<IHttpContextAccessor>();
+    var req = accessor.HttpContext?.Request;
+    if (req != null)
+        client.BaseAddress = new Uri($"{req.Scheme}://{req.Host}");
+}).AddHttpMessageHandler<CookieForwardingHandler>();
+builder.Services.AddScoped<CookieForwardingHandler>();
 
 // Blazor + API
 builder.Services.AddRazorComponents()
@@ -31,12 +56,14 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Apply migrations and seed genres (run first: dotnet ef migrations add Initial)
+// Apply migrations and seed data
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await db.Database.MigrateAsync();
     await GenreSeed.SeedAsync(db);
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    await RoleSeed.SeedAsync(roleManager);
 }
 
 // Configure the HTTP request pipeline.

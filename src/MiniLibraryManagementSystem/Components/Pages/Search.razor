@@ -1,0 +1,115 @@
+@page "/search"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Search books</PageTitle>
+
+<h1>Search books</h1>
+
+<div class="row mb-4">
+    <div class="col-md-4 mb-2">
+        <label class="form-label">Text</label>
+        <input type="text" class="form-control" @bind="_q" @bind:event="oninput" placeholder="Title or author" />
+    </div>
+    <div class="col-md-2 mb-2">
+        <label class="form-label">Genre</label>
+        <select class="form-select" @bind="_genreId">
+            <option value="0">All</option>
+            @foreach (var g in _genres)
+            {
+                <option value="@g.Id">@g.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2 mb-2">
+        <label class="form-label">Min pages</label>
+        <input type="number" class="form-control" @bind="_minPages" placeholder="Min" />
+    </div>
+    <div class="col-md-2 mb-2">
+        <label class="form-label">Max pages</label>
+        <input type="number" class="form-control" @bind="_maxPages" placeholder="Max" />
+    </div>
+    <div class="col-md-2 d-flex align-items-end mb-2">
+        <button class="btn btn-primary w-100" @onclick="SearchAsync">Search</button>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Genre</th>
+                <th>Pages</th>
+                <th>Reading time</th>
+                <th>Ease</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var b in _results)
+            {
+                <tr>
+                    <td>@b.Title</td>
+                    <td>@b.Author</td>
+                    <td>@b.GenreName</td>
+                    <td>@b.PageCount</td>
+                    <td>@(b.EstimatedReadingMinutes.HasValue ? b.EstimatedReadingMinutes + " min" : "-")</td>
+                    <td>@(b.EaseOfReading ?? "-")</td>
+                    <td><a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    if (_searched && _results.Count == 0)
+    {
+        <p class="text-muted">No books match your search.</p>
+    }
+}
+
+@code {
+    private string _q = "";
+    private int _genreId;
+    private int? _minPages;
+    private int? _maxPages;
+    private List<BookDto> _results = new();
+    private List<GenreItem> _genres = new();
+    private bool _loading;
+    private bool _searched;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = HttpClientFactory.CreateClient("Api");
+        var list = await client.GetFromJsonAsync<List<GenreItem>>("api/genres");
+        _genres = list ?? new();
+    }
+
+    private async Task SearchAsync()
+    {
+        _loading = true;
+        _searched = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("Api");
+            var url = "api/search?q=" + Uri.EscapeDataString(_q);
+            if (_genreId > 0) url += "&genreId=" + _genreId;
+            if (_minPages.HasValue) url += "&minPages=" + _minPages;
+            if (_maxPages.HasValue) url += "&maxPages=" + _maxPages;
+            var list = await client.GetFromJsonAsync<List<BookDto>>(url);
+            _results = list ?? new();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private record GenreItem(int Id, string Name);
+}

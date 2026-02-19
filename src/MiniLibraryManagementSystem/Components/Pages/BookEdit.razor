@@ -1,0 +1,140 @@
+@page "/books/add"
+@page "/books/edit/{Id:int}"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id == 0 ? "Add book" : "Edit book")</PageTitle>
+
+<h1>@(Id == 0 ? "Add book" : "Edit book")</h1>
+
+@if (_genres.Count == 0 && !_loading)
+{
+    <p class="text-danger">Could not load genres.</p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <div class="mb-3">
+            <label class="form-label">Title</label>
+            <InputText @bind-Value="_model.Title" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Author</label>
+            <InputText @bind-Value="_model.Author" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Page count</label>
+            <InputNumber @bind-Value="_model.PageCount" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Genre</label>
+            <InputSelect @bind-Value="_model.GenreId" class="form-select">
+                @foreach (var g in _genres)
+                {
+                    <option value="@g.Id">@g.Name</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">ISBN (optional)</label>
+            <InputText @bind-Value="_model.ISBN" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Description (optional)</label>
+            <InputTextArea @bind-Value="_model.Description" class="form-control" rows="3" />
+        </div>
+        <div class="mb-3">
+            <button type="submit" class="btn btn-primary" disabled="@_saving">@(_saving ? "Saving…" : "Save")</button>
+            <a href="/books" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </div>
+        @if (_error is { Length: > 0 })
+        {
+            <div class="alert alert-danger">@_error</div>
+        }
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private BookEditModel _model = new();
+    private List<GenreItem> _genres = new();
+    private bool _loading = true;
+    private bool _saving;
+    private string _error = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = HttpClientFactory.CreateClient("Api");
+        var genres = await client.GetFromJsonAsync<List<GenreItem>>("api/genres");
+        _genres = genres ?? new();
+        if (Id > 0)
+        {
+            var book = await client.GetFromJsonAsync<BookDto>("api/books/" + Id);
+            if (book != null)
+            {
+                _model = new BookEditModel
+                {
+                    Title = book.Title,
+                    Author = book.Author,
+                    PageCount = book.PageCount,
+                    GenreId = book.GenreId,
+                    ISBN = book.ISBN,
+                    Description = book.Description,
+                    CoverUrl = book.CoverUrl,
+                    PublishYear = book.PublishYear
+                };
+            }
+        }
+        else
+        {
+            _model.GenreId = _genres.FirstOrDefault()?.Id ?? 0;
+        }
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = "";
+        _saving = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("Api");
+            if (Id == 0)
+            {
+                await client.PostAsJsonAsync("api/books", _model);
+            }
+            else
+            {
+                await client.PutAsJsonAsync("api/books/" + Id, _model);
+            }
+            Navigation.NavigateTo("/books");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private class BookEditModel
+    {
+        public string Title { get; set; } = "";
+        public string Author { get; set; } = "";
+        public int PageCount { get; set; }
+        public int GenreId { get; set; }
+        public string? ISBN { get; set; }
+        public string? Description { get; set; }
+        public string? CoverUrl { get; set; }
+        public int? PublishYear { get; set; }
+    }
+
+    private record GenreItem(int Id, string Name);
+}

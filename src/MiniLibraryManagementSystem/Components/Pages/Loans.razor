@@ -1,0 +1,129 @@
+@page "/loans"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Loans</PageTitle>
+
+<h1>Loans</h1>
+
+@if (_loading)
+{
+    <p>Loading…</p>
+}
+else if (_needsSignIn)
+{
+    <div class="card shadow-sm" style="max-width: 28rem;">
+        <div class="card-body text-center py-5">
+            <span class="bi bi-journal-check display-4 text-muted" aria-hidden="true"></span>
+            <h2 class="h5 mt-3">Sign in to view your loans</h2>
+            <p class="text-muted mb-4">Your current and past loans are available after you sign in with Google or Microsoft.</p>
+            <a href="/login" class="btn btn-primary">Sign in</a>
+            <a href="/books" class="btn btn-outline-secondary ms-2">Browse books</a>
+        </div>
+    </div>
+}
+else if (_error is { Length: > 0 })
+{
+    <div class="alert alert-warning d-flex align-items-center">
+        <span class="bi bi-exclamation-triangle me-2" aria-hidden="true"></span>
+        <div>
+            <strong>Could not load loans.</strong>
+            <p class="mb-0 mt-1">@_error</p>
+            <a href="/login" class="alert-link mt-2 d-inline-block">Sign in</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="mb-3">
+        <button class="btn @(_activeOnly ? "btn-outline-primary" : "btn-primary")" @onclick="ToggleActive">Current only</button>
+        <a href="/books" class="btn btn-outline-secondary ms-2">Browse books</a>
+    </div>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Book</th>
+                <th>Borrower</th>
+                <th>Borrowed</th>
+                <th>Due</th>
+                <th>Returned</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var l in _loans)
+            {
+                <tr class="@(l.ReturnedAt == null && l.DueDate < DateTime.UtcNow ? "table-warning" : "")">
+                    <td>@l.BookTitle</td>
+                    <td>@l.UserEmail</td>
+                    <td>@l.BorrowedAt.ToString("yyyy-MM-dd")</td>
+                    <td>@l.DueDate.ToString("yyyy-MM-dd")</td>
+                    <td>@(l.ReturnedAt?.ToString("yyyy-MM-dd") ?? "-")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    if (_loans.Count == 0)
+    {
+        <p class="text-muted">No loans.</p>
+    }
+}
+
+@code {
+    private List<LoanDto> _loans = new();
+    private bool _loading = true;
+    private bool _activeOnly = true;
+    private string _error = "";
+    private bool _needsSignIn;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = "";
+        _needsSignIn = false;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("Api");
+            var url = "api/loans?activeOnly=" + (_activeOnly ? "true" : "false");
+            var response = await client.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                _loans = await response.Content.ReadFromJsonAsync<List<LoanDto>>() ?? new();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _needsSignIn = true;
+            }
+            else
+            {
+                _error = $"Request failed ({(int)response.StatusCode}).";
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _needsSignIn = true;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ToggleActive()
+    {
+        _activeOnly = !_activeOnly;
+        await LoadAsync();
+    }
+
+    private record LoanDto(int Id, int BookId, string BookTitle, string? GenreName, string UserId, string? UserEmail, DateTime BorrowedAt, DateTime DueDate, DateTime? ReturnedAt, DateTime CreatedAt);
+}

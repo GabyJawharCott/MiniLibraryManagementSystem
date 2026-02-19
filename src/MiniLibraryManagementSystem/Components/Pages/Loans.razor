@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject ILoanService LoanService
-@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Loans</PageTitle>
 
@@ -19,11 +19,10 @@ else if (_error is { Length: > 0 })
 }
 else
 {
-    <AuthorizeView Roles="Admin,Librarian">
-        <Authorized>
-            <p class="text-muted mb-2">You see all loans. Members see only their own.</p>
-        </Authorized>
-    </AuthorizeView>
+    @if (_isStaff)
+    {
+        <p class="text-muted mb-2">You see all loans. Members see only their own.</p>
+    }
     <div class="mb-3">
         <button class="btn @(_activeOnly ? "btn-outline-primary" : "btn-primary")" @onclick="ToggleActive">@(_activeOnly ? "Show all loans" : "Current only")</button>
         <a href="/books" class="btn btn-outline-secondary ms-2">Browse books</a>
@@ -36,11 +35,10 @@ else
                 <th>Borrowed</th>
                 <th>Due</th>
                 <th>Returned</th>
-                <AuthorizeView Roles="Admin,Librarian">
-                    <Authorized>
-                        <th></th>
-                    </Authorized>
-                </AuthorizeView>
+                @if (_isStaff)
+                {
+                    <th></th>
+                }
             </tr>
         </thead>
         <tbody>
@@ -52,20 +50,19 @@ else
                     <td>@l.BorrowedAt.ToString("yyyy-MM-dd")</td>
                     <td>@l.DueDate.ToString("yyyy-MM-dd")</td>
                     <td>@(l.ReturnedAt?.ToString("yyyy-MM-dd") ?? "-")</td>
-                    <AuthorizeView Roles="Admin,Librarian">
-                        <Authorized>
-                            <td>
-                                @if (l.ReturnedAt == null)
-                                {
-                                    <button type="button" class="btn btn-sm btn-success" disabled="@_checkingInId.HasValue" @onclick="() => CheckInAsync(l.Id)">Check-in</button>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">—</span>
-                                }
-                            </td>
-                        </Authorized>
-                    </AuthorizeView>
+                    @if (_isStaff)
+                    {
+                        <td>
+                            @if (l.ReturnedAt == null)
+                            {
+                                <button type="button" class="btn btn-sm btn-success" disabled="@_checkingInId.HasValue" @onclick="() => CheckInAsync(l.Id)">Check-in</button>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                    }
                 </tr>
             }
         </tbody>
@@ -82,10 +79,26 @@ else
     private bool _activeOnly = true;
     private string _error = "";
     private int? _checkingInId;
+    private bool _isStaff;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadAsync();
+        if (!firstRender) return;
+        try
+        {
+            var state = await AuthStateProvider.GetAuthenticationStateAsync();
+            _isStaff = state.User?.IsInRole("Admin") == true || state.User?.IsInRole("Librarian") == true;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task LoadAsync()

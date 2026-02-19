@@ -74,6 +74,7 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+<<<<<<< HEAD
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
@@ -416,3 +417,7 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Project-specific
+secrets.json
+appsettings.*.local.json

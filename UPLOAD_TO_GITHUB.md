@@ -11,7 +11,7 @@ Replace **YOUR_GITHUB_USERNAME** with your GitHub username:
 ```powershell
 cd "c:\Users\GabyJawhar\source\Cursor\Assessments\Assessment2"
 
-git remote add origin https://github.com/YOUR_GITHUB_USERNAME/MiniLibraryManagementSystem.git
+git remote add origin https://github.com/GabyJawharCott/MiniLibraryManagementSystem.git
 ```
 
 If your repo URL is different (e.g. under an organization), use that URL instead.
@@ -54,7 +54,7 @@ git push -u origin master
 ## 5. Authenticate (if prompted)
 
 - **HTTPS:** GitHub may ask for your username and a **Personal Access Token** (not your password). Create one at: GitHub → Settings → Developer settings → Personal access tokens.
-- **SSH:** If you use SSH, set the remote to: `git@github.com:YOUR_GITHUB_USERNAME/MiniLibraryManagementSystem.git` and use that for `git push`.
+- **SSH:** If you use SSH, set the remote to: `git@github.com:GabyJawharCott/MiniLibraryManagementSystem.git` and use that for `git push`.
 
 ---
 

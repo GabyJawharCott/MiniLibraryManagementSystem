@@ -421,3 +421,5 @@ FodyWeavers.xsd
 # Project-specific
 secrets.json
 appsettings.*.local.json
+# Production config (set via host env/secrets; never commit real values)
+src/MiniLibraryManagementSystem/appsettings.Production.json

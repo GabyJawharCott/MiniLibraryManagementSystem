@@ -4,8 +4,18 @@ using MiniLibraryManagementSystem.Data.Seed;
 using MiniLibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Optional: persistent Data Protection keys (for scale-out or cookie survival across restarts)
+var dataProtectionKeyPath = builder.Configuration["DataProtection:KeyPath"];
+if (!string.IsNullOrWhiteSpace(dataProtectionKeyPath))
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath));
+}
 
 // Database & Identity
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -86,6 +96,15 @@ using (var scope = app.Services.CreateScope())
     await GenreSeed.SeedAsync(db);
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     await RoleSeed.SeedAsync(roleManager);
+}
+
+// Forwarded Headers: when behind a reverse proxy/load balancer, so Scheme/Host are correct (OAuth redirects, links)
+if (builder.Configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
+{
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    });
 }
 
 // Configure the HTTP request pipeline.

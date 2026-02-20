@@ -61,6 +61,10 @@ src/
     └── Components/       # Blazor pages and layout
 ```
 
+## Deploying for public access
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for production configuration, Google OAuth setup, optional Data Protection and Forwarded Headers, and a step-by-step deployment checklist.
+
 ## Live URL
 
 *(After deployment, add the live app URL here.)*

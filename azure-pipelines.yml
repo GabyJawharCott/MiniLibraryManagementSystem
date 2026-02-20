@@ -1,0 +1,83 @@
+# Azure DevOps pipeline: build and publish Mini Library Management System
+# Deploy to Azure App Service by adding a service connection and setting AzureWebAppName (see DEPLOYMENT.md)
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  projectPath: 'src/MiniLibraryManagementSystem/MiniLibraryManagementSystem.csproj'
+  publishOutput: '$(Build.ArtifactStagingDirectory)/publish'
+  # Set in Azure DevOps (Variables or Library): AzureWebAppName, e.g. 'minilibrary-web'
+  # Set Azure service connection name, e.g. 'Azure-App-Service-Connection'
+
+stages:
+  - stage: Build
+    displayName: 'Build and publish'
+    jobs:
+      - job: BuildJob
+        displayName: 'Build .NET app'
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Use .NET 9'
+            inputs:
+              packageType: 'sdk'
+              version: '9.x'
+              installationType: 'latestVersion'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Restore'
+            inputs:
+              command: 'restore'
+              projects: '$(projectPath)'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Build'
+            inputs:
+              command: 'build'
+              projects: '$(projectPath)'
+              arguments: '--configuration $(buildConfiguration) --no-restore'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Publish'
+            inputs:
+              command: 'publish'
+              publishWebProjects: false
+              projects: '$(projectPath)'
+              arguments: '--configuration $(buildConfiguration) --output $(publishOutput) --no-build'
+              zipAfterPublish: false
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish artifact'
+            inputs:
+              targetPath: '$(publishOutput)'
+              artifactName: 'drop'
+              publishLocation: 'pipeline'
+
+  - stage: Deploy
+    displayName: 'Deploy to Azure Web App'
+    dependsOn: Build
+    # Deploy only from main, or set variable DeployToAzure=true to deploy from any branch
+    condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['DeployToAzure'], 'true')))
+    jobs:
+      - deployment: DeployWeb
+        displayName: 'Deploy to Azure App Service'
+        environment: 'production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebApp@1
+                  displayName: 'Azure Web App deploy'
+                  inputs:
+                    azureSubscription: '$(AzureServiceConnection)'
+                    appType: 'webAppLinux'
+                    appName: '$(AzureWebAppName)'
+                    package: '$(Pipeline.Workspace)/drop'
+                    runtimeStack: 'DOTNETCORE|9.0'

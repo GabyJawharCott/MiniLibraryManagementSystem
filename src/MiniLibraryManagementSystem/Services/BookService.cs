@@ -34,6 +34,12 @@ public class BookService : IBookService
         return list;
     }
 
+    public async Task<BookDto?> GetBookByIdAsync(int id, CancellationToken ct = default)
+    {
+        var book = await _db.Books.Include(b => b.Genre).FirstOrDefaultAsync(b => b.Id == id, ct);
+        return book is null ? null : BookDto.FromEntity(book);
+    }
+
     public async Task<(bool Success, BookDto? Book, string? Error)> CreateBookAsync(CreateBookDto dto, CancellationToken ct = default)
     {
         if (!await IsAdminOrLibrarianAsync())

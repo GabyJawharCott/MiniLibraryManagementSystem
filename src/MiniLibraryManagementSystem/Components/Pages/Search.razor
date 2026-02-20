@@ -3,6 +3,7 @@
 @attribute [Authorize]
 @inject ISearchService SearchService
 @inject ILoanService LoanService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Search books</PageTitle>
 
@@ -81,11 +82,15 @@ else
                     <td>@(b.EaseOfReading ?? "-")</td>
                     <td>@b.Status</td>
                     <td>
+                        <a href="/books/view/@b.Id" class="btn btn-sm btn-outline-primary me-1">View</a>
                         @if (b.Status == "Available")
                         {
                             <button type="button" class="btn btn-sm btn-success me-1" disabled="@_borrowingId.HasValue" @onclick="() => BorrowAsync(b.Id)">Borrow</button>
                         }
-                        <a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-primary">View</a>
+                        @if (_isStaff)
+                        {
+                            <a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        }
                     </td>
                 </tr>
             }
@@ -111,6 +116,7 @@ else
     private bool _searched;
     private int? _borrowingId;
     private string _error = "";
+    private bool _isStaff;
 
     private async Task BorrowAsync(int bookId)
     {
@@ -134,6 +140,8 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        _isStaff = state.User?.IsInRole("Admin") == true || state.User?.IsInRole("Librarian") == true;
         var list = await SearchService.GetGenresAsync();
         _genres = list ?? new();
         await SearchAsync();

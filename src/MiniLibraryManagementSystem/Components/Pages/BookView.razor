@@ -1,0 +1,111 @@
+@page "/books/view/{Id:int}"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IBookService BookService
+@inject ILoanService LoanService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>@(_book?.Title ?? "Book")</PageTitle>
+
+@if (_loading)
+{
+    <p>Loading…</p>
+}
+else if (_book is null)
+{
+    <div class="alert alert-warning">Book not found.</div>
+    <a href="/books" class="btn btn-outline-secondary">Back to Books</a>
+}
+else
+{
+    <h1>@_book.Title</h1>
+    <dl class="row mt-3">
+        <dt class="col-sm-3">Author</dt>
+        <dd class="col-sm-9">@_book.Author</dd>
+        <dt class="col-sm-3">Genre</dt>
+        <dd class="col-sm-9">@_book.GenreName</dd>
+        <dt class="col-sm-3">Pages</dt>
+        <dd class="col-sm-9">@_book.PageCount</dd>
+        <dt class="col-sm-3">Status</dt>
+        <dd class="col-sm-9">@_book.Status</dd>
+        @if (_book.EstimatedReadingMinutes.HasValue)
+        {
+            <dt class="col-sm-3">Reading time</dt>
+            <dd class="col-sm-9">@_book.EstimatedReadingMinutes min</dd>
+        }
+        @if (!string.IsNullOrEmpty(_book.EaseOfReading))
+        {
+            <dt class="col-sm-3">Level</dt>
+            <dd class="col-sm-9">@_book.EaseOfReading</dd>
+        }
+        @if (!string.IsNullOrEmpty(_book.ISBN))
+        {
+            <dt class="col-sm-3">ISBN</dt>
+            <dd class="col-sm-9">@_book.ISBN</dd>
+        }
+        @if (_book.PublishYear.HasValue)
+        {
+            <dt class="col-sm-3">Year</dt>
+            <dd class="col-sm-9">@_book.PublishYear</dd>
+        }
+        @if (!string.IsNullOrEmpty(_book.Description))
+        {
+            <dt class="col-sm-3">Description</dt>
+            <dd class="col-sm-9">@_book.Description</dd>
+        }
+    </dl>
+    <div class="mt-4">
+        @if (_book.Status == "Available")
+        {
+            <button type="button" class="btn btn-success me-2" disabled="@_borrowing" @onclick="BorrowAsync">Borrow this book</button>
+        }
+        @if (_isStaff)
+        {
+            <a href="/books/edit/@_book.Id" class="btn btn-outline-primary me-2">Edit</a>
+        }
+        <a href="/books" class="btn btn-outline-secondary">Back to Books</a>
+    </div>
+    @if (_error is { Length: > 0 })
+    {
+        <div class="alert alert-danger mt-3">@_error</div>
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private BookDto? _book;
+    private bool _loading = true;
+    private bool _borrowing;
+    private string _error = "";
+    private bool _isStaff;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        _isStaff = state.User?.IsInRole("Admin") == true || state.User?.IsInRole("Librarian") == true;
+        _book = await BookService.GetBookByIdAsync(Id);
+        _loading = false;
+    }
+
+    private async Task BorrowAsync()
+    {
+        if (_book is null) return;
+        _borrowing = true;
+        _error = "";
+        try
+        {
+            var (success, err) = await LoanService.CheckOutAsync(_book.Id);
+            if (success)
+                _book = await BookService.GetBookByIdAsync(Id);
+            else
+                _error = err ?? "Could not borrow book.";
+        }
+        finally
+        {
+            _borrowing = false;
+        }
+    }
+}

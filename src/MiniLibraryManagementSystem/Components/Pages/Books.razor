@@ -47,13 +47,14 @@ else
                     <td>@b.PageCount</td>
                     <td>@b.Status</td>
                     <td>
+                        <a href="/books/view/@b.Id" class="btn btn-sm btn-outline-primary me-1">View</a>
                         @if (b.Status == "Available")
                         {
                             <button type="button" class="btn btn-sm btn-success me-1" disabled="@_borrowingId.HasValue" @onclick="() => BorrowAsync(b.Id)">Borrow</button>
                         }
                         @if (_isStaff)
                         {
-                            <a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-primary me-1">Edit</a>
+                            <a href="/books/edit/@b.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
                             <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => _bookToDelete = b">Delete</button>
                         }
                     </td>

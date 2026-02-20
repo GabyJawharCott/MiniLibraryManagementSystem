@@ -73,7 +73,7 @@ The repo includes **`azure-pipelines.yml`** for Azure DevOps. It builds on every
 1. In your project (**MiniLibraryManagementSystem**), go to **Pipelines** → **Pipelines**.
 2. Click **Create pipeline** → choose your repo (e.g. **Azure Repos Git** or **GitHub**).
 3. Select **Existing Azure Pipelines YAML file** and choose the **`azure-pipelines.yml`** in the root of the repo.
-4. Click **Continue** and then **Save** (or **Run** to test). The first run will build; deploy will run only after you set the variables below.
+4. Click **Continue** and then **Save** (or **Run** to test). The **Build** stage will run and succeed. The **Deploy** stage is skipped until you create the Azure service connection and set the pipeline variables below (so you will not see the error "service connection ... could not be found" once the YAML condition is in place).
 
 ### 7.2 Azure resources
 

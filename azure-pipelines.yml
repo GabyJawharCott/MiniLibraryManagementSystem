@@ -63,8 +63,9 @@ stages:
   - stage: Deploy
     displayName: 'Deploy to Azure Web App'
     dependsOn: Build
-    # Deploy only from main, or set variable DeployToAzure=true to deploy from any branch
-    condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['DeployToAzure'], 'true')))
+    # Skip deploy if Azure service connection or app name not set (see DEPLOYMENT.md section 7)
+    # Deploy only from main, or set variable DeployToAzure=true
+    condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['DeployToAzure'], 'true')), ne(variables['AzureServiceConnection'], ''), ne(variables['AzureWebAppName'], ''))
     jobs:
       - deployment: DeployWeb
         displayName: 'Deploy to Azure App Service'

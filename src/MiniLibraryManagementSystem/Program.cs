@@ -37,6 +37,13 @@ if (!string.IsNullOrWhiteSpace(googleClientId))
     {
         options.ClientId = googleClientId;
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+        // Force Google to show the account chooser so the user can switch accounts
+        options.Events.OnRedirectToAuthorizationEndpoint = context =>
+        {
+            var separator = context.RedirectUri.Contains('?') ? "&" : "?";
+            context.Response.Redirect(context.RedirectUri + separator + "prompt=select_account");
+            return Task.CompletedTask;
+        };
     });
 }
 if (!string.IsNullOrWhiteSpace(microsoftClientId))

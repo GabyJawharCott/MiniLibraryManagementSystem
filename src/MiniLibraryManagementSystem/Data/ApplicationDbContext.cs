@@ -35,6 +35,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
                 .WithMany(x => x.Loans)
                 .HasForeignKey(x => x.BookId)
                 .OnDelete(DeleteBehavior.Restrict);
+            // Only include loans whose book is not soft-deleted (matches Book query filter)
+            b.HasQueryFilter(l => l.Book != null && !l.Book.IsDeleted);
             b.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)

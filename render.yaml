@@ -1,0 +1,23 @@
+# Render Blueprint: Mini Library Management System
+# Deploy with Neon (PostgreSQL): connect your repo, set env vars, then deploy.
+# See DEPLOYMENT.md section "Deploy to Render (with Neon)".
+
+services:
+  - type: web
+    runtime: docker
+    name: minilibrary
+    rootDir: src/MiniLibraryManagementSystem
+    # Required: set in Render Dashboard → Environment (or when prompted)
+    envVars:
+      - key: DatabaseProvider
+        value: PostgreSQL
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Authentication__Google__ClientId
+        sync: false
+      - key: Authentication__Google__ClientSecret
+        sync: false
+      - key: AllowedHosts
+        value: "*"
+      - key: ForwardedHeaders__Enabled
+        value: "true"

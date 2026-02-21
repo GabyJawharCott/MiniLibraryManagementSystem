@@ -4,10 +4,16 @@ using MiniLibraryManagementSystem.Data.Seed;
 using MiniLibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Listen on PORT when set (e.g. Render, Railway) so the app is reachable at 0.0.0.0
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port) && int.TryParse(port, out var portNum))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{portNum}");
 
 // Optional: persistent Data Protection keys (for scale-out or cookie survival across restarts)
 var dataProtectionKeyPath = builder.Configuration["DataProtection:KeyPath"];
@@ -17,9 +23,18 @@ if (!string.IsNullOrWhiteSpace(dataProtectionKeyPath))
         .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath));
 }
 
-// Database & Identity
+// Database & Identity (SQL Server by default; set DatabaseProvider to "PostgreSQL" for Render etc.)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    if (string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase))
+        options.UseNpgsql(connectionString);
+    else
+        options.UseSqlServer(connectionString);
+});
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;

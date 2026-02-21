@@ -74,7 +74,6 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
-<<<<<<< HEAD
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
@@ -423,3 +422,5 @@ secrets.json
 appsettings.*.local.json
 # Production config (set via host env/secrets; never commit real values)
 src/MiniLibraryManagementSystem/appsettings.Production.json
+/src/MiniLibraryManagementSystem/appsettings.Development.json
+/src/MiniLibraryManagementSystem/appsettings.Production.example.json

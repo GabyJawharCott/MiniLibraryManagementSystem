@@ -1,5 +1,5 @@
-# Build
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+# Build (explicit platform for consistent behavior on Render/x64)
+FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 COPY ["MiniLibraryManagementSystem.csproj", "."]
@@ -8,11 +8,12 @@ COPY . .
 RUN dotnet publish "MiniLibraryManagementSystem.csproj" -c Release -o /app/publish --no-restore
 
 # Run
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 EXPOSE 8080
 
-# PORT is set at runtime by Render/Railway; the app reads it in Program.cs
+# Reduce risk of segfault (139) in constrained environments; PORT is set by Render at runtime
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "MiniLibraryManagementSystem.dll"]

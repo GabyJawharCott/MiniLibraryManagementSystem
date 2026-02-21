@@ -211,11 +211,15 @@ Render’s **free tier** lets you run one **Web Service** (no Blueprint required
 - **Auto-deploy**: By default, pushes to the connected branch trigger a new deploy.
 - **Secrets**: Never commit Neon or Google secrets; keep them only in Render’s Environment.
 
-**Neon SSL error (SslStream.SendAuthResetSignal / connection to database 'neondb'):** Add env var **`ConnectionStrings__AppendTrustServerCertificate`** = **`true`** in Render (Environment). The app will then skip server certificate validation when connecting to Neon, which fixes the SSL handshake failure in Docker. Without this, the container’s CA store can cause the connection to fail.
+**Neon SSL error (SslStream.SendAuthResetSignal / connection to database 'neondb'):** Add env var **`ConnectionStrings__AppendTrustServerCertificate`** = **`true`** in Render (Environment). The app will then use SSL Mode=Require and skip server certificate validation when connecting to Neon (required in Docker where the CA store can cause handshake failures). If your connection string uses `SSL Mode=VerifyFull` or `VerifyCA`, the app will override it to `Require` when this option is set.
 
 **Port scan timeout / no open ports:** The app binds to `PORT` and runs migrations in the background after startup, so Render should see the port. If you still get “no open ports”, ensure `PORT` is set by Render (it usually is) and that no env var overrides `ASPNETCORE_URLS` with a different port.
 
 **Exit status 139 (crash/segfault):** The Dockerfile uses `linux/amd64` and `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` to reduce this. If it still happens on Render’s free tier (512 MB RAM), try upgrading to a paid instance with more memory, or add env var `DOTNET_GCHeapHardLimit` (e.g. `0x1E000000` for ~480 MB) to cap GC and avoid OOM kills that can look like 139.
+
+**“An error occurred while processing your request” (with Request ID):** In Production the app hides exception details. To see the real error:
+1. **Render Logs** — In Render Dashboard → your service → **Logs**, reproduce the error, then search for your Request ID (e.g. `1fbd00abdc01f6040877d727b369f6a8`) or for `Exception` or `fail:`. The full exception and stack trace are logged there.
+2. **Temporarily show errors in the browser** — In Render → **Environment**, add **`ASPNETCORE_ENVIRONMENT`** = **`Development`**. Redeploy, reproduce the error; the page will show the exception details. **Remove this env var** (or set it back to `Production`) when done, so you don’t expose errors to users.
 
 ### 9.3 Optional: Blueprint
 

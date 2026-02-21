@@ -30,12 +30,22 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
 var trustServerCertificate = builder.Configuration.GetValue<bool>("ConnectionStrings:AppendTrustServerCertificate");
+// Npgsql: when using RemoteCertificateValidationCallback, SSL Mode must not be VerifyFull/VerifyCA
+if (string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase) && trustServerCertificate)
+{
+    connectionString = System.Text.RegularExpressions.Regex.Replace(
+        connectionString,
+        @"SSL\s*Mode\s*=\s*(VerifyFull|VerifyCA|verify-full|verify-ca)",
+        "SSL Mode=Require",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    if (!System.Text.RegularExpressions.Regex.IsMatch(connectionString, @"SSL\s*Mode\s*=", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+        connectionString = connectionString.TrimEnd(';') + ";SSL Mode=Require";
+}
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     if (string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase))
     {
-        // In Docker/Render, Neon SSL can fail (SslStream.SendAuthResetSignal); skip server cert validation when opted in
         if (trustServerCertificate)
             options.UseNpgsql(connectionString, npgsql => npgsql.RemoteCertificateValidationCallback((_, _, _, _) => true));
         else

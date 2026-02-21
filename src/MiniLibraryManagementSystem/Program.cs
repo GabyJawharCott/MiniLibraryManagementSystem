@@ -1,3 +1,5 @@
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using MiniLibraryManagementSystem.Components;
 using MiniLibraryManagementSystem.Data;
 using MiniLibraryManagementSystem.Data.Seed;
@@ -27,18 +29,18 @@ if (!string.IsNullOrWhiteSpace(dataProtectionKeyPath))
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
-// In Docker/Render, Npgsql can fail Neon SSL handshake; appending Trust Server Certificate=true fixes it
-if (string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase)
-    && builder.Configuration.GetValue<bool>("ConnectionStrings:AppendTrustServerCertificate"))
-{
-    var separator = connectionString.TrimEnd().EndsWith(';') ? "" : ";";
-    connectionString = connectionString + separator + "Trust Server Certificate=true";
-}
+var trustServerCertificate = builder.Configuration.GetValue<bool>("ConnectionStrings:AppendTrustServerCertificate");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     if (string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase))
-        options.UseNpgsql(connectionString);
+    {
+        // In Docker/Render, Neon SSL can fail (SslStream.SendAuthResetSignal); skip server cert validation when opted in
+        if (trustServerCertificate)
+            options.UseNpgsql(connectionString, npgsql => npgsql.RemoteCertificateValidationCallback((_, _, _, _) => true));
+        else
+            options.UseNpgsql(connectionString);
+    }
     else
         options.UseSqlServer(connectionString);
 });

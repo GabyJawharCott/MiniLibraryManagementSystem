@@ -211,7 +211,7 @@ Render’s **free tier** lets you run one **Web Service** (no Blueprint required
 - **Auto-deploy**: By default, pushes to the connected branch trigger a new deploy.
 - **Secrets**: Never commit Neon or Google secrets; keep them only in Render’s Environment.
 
-**Neon SSL error (SslStream / connection to database 'neondb'):** Add env var `ConnectionStrings__AppendTrustServerCertificate` = `true`. The app will append `Trust Server Certificate=true` to the Neon connection string so the Docker image can connect without full CA validation.
+**Neon SSL error (SslStream.SendAuthResetSignal / connection to database 'neondb'):** Add env var **`ConnectionStrings__AppendTrustServerCertificate`** = **`true`** in Render (Environment). The app will then skip server certificate validation when connecting to Neon, which fixes the SSL handshake failure in Docker. Without this, the container’s CA store can cause the connection to fail.
 
 **Port scan timeout / no open ports:** The app binds to `PORT` and runs migrations in the background after startup, so Render should see the port. If you still get “no open ports”, ensure `PORT` is set by Render (it usually is) and that no env var overrides `ASPNETCORE_URLS` with a different port.
 

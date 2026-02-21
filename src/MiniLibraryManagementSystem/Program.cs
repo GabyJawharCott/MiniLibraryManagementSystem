@@ -27,6 +27,13 @@ if (!string.IsNullOrWhiteSpace(dataProtectionKeyPath))
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
+// In Docker/Render, Npgsql can fail Neon SSL handshake; appending Trust Server Certificate=true fixes it
+if (string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase)
+    && builder.Configuration.GetValue<bool>("ConnectionStrings:AppendTrustServerCertificate"))
+{
+    var separator = connectionString.TrimEnd().EndsWith(';') ? "" : ";";
+    connectionString = connectionString + separator + "Trust Server Certificate=true";
+}
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
@@ -103,15 +110,27 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Apply migrations and seed data
-using (var scope = app.Services.CreateScope())
+// Run migrations and seed in background so the app binds to PORT immediately (Render port check)
+app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStarted.Register(() =>
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await db.Database.MigrateAsync();
-    await GenreSeed.SeedAsync(db);
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    await RoleSeed.SeedAsync(roleManager);
-}
+    _ = Task.Run(async () =>
+    {
+        await Task.Delay(500);
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.Database.MigrateAsync();
+            await GenreSeed.SeedAsync(db);
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            await RoleSeed.SeedAsync(roleManager);
+        }
+        catch (Exception ex)
+        {
+            app.Services.GetRequiredService<ILogger<Program>>().LogError(ex, "Migrations/seed failed");
+        }
+    });
+});
 
 // Forwarded Headers: when behind a reverse proxy/load balancer, so Scheme/Host are correct (OAuth redirects, links)
 if (builder.Configuration.GetValue<bool>("ForwardedHeaders:Enabled"))

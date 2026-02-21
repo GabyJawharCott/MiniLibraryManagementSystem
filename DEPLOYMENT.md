@@ -51,6 +51,7 @@ For **PostgreSQL** (e.g. Render): set `DatabaseProvider` to `PostgreSQL` and `Co
 | Environment variable                      | Description                                      | Example value                                                                                                                                                                                                                                              | Required?                                                  |
 | ----------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `ConnectionStrings__DefaultConnection`    | Database connection string                       | **Neon:** `Host=ep-xxx.neon.tech;Database=neondb;Username=neondb_owner;Password=YOUR_PASSWORD;SSL Mode=Require` **SQL Server:** `Server=(localdb)\mssqllocaldb;Database=MiniLibraryManagementSystem;Trusted_Connection=True;MultipleActiveResultSets=true` | Yes                                                        |
+| `ConnectionStrings__AppendTrustServerCertificate` | Append `Trust Server Certificate=true` for Neon in Docker (fixes SSL handshake on Render) | `true` or omit | Set to `true` on Render if you see SslStream/SSL connection errors to Neon |
 | `DatabaseProvider`                        | Which database to use                            | `PostgreSQL` or `SqlServer` (default)                                                                                                                                                                                                                      | Yes for Neon; omit or `SqlServer` for SQL Server           |
 | `Authentication__Google__ClientId`        | Google OAuth 2.0 Client ID                       | `123456789-xxx.apps.googleusercontent.com`                                                                                                                                                                                                                 | Yes for Google sign-in                                     |
 | `Authentication__Google__ClientSecret`    | Google OAuth 2.0 Client Secret                   | `GOCSPX-xxxxx`                                                                                                                                                                                                                                             | Yes for Google sign-in                                     |
@@ -70,7 +71,7 @@ For **PostgreSQL** (e.g. Render): set `DatabaseProvider` to `PostgreSQL` and `Co
 
 
 **Minimal set for Render + Neon + Google sign-in:**  
-`DatabaseProvider`, `ConnectionStrings__DefaultConnection`, `Authentication__Google__ClientId`, `Authentication__Google__ClientSecret`, `AllowedHosts`, `ForwardedHeaders__Enabled`.
+`DatabaseProvider`, `ConnectionStrings__DefaultConnection`, `ConnectionStrings__AppendTrustServerCertificate` = `true`, `Authentication__Google__ClientId`, `Authentication__Google__ClientSecret`, `AllowedHosts`, `ForwardedHeaders__Enabled`.
 
 ### Optional: `appsettings.Production.json`
 
@@ -193,6 +194,7 @@ Render’s **free tier** lets you run one **Web Service** (no Blueprint required
   | -------------------------------------- | -------------------------------------------------------------------------------------------------------- |
   | `DatabaseProvider`                     | `PostgreSQL`                                                                                             |
   | `ConnectionStrings__DefaultConnection` | Your Neon connection string (e.g. `Host=...;Database=neondb;Username=...;Password=...;SSL Mode=Require`) |
+  | `ConnectionStrings__AppendTrustServerCertificate` | `true` (fixes Neon SSL in Docker) |
   | `Authentication__Google__ClientId`     | Your Google OAuth Client ID                                                                              |
   | `Authentication__Google__ClientSecret` | Your Google OAuth Client Secret                                                                          |
   | `AllowedHosts`                         | `*`                                                                                                      |
@@ -208,6 +210,10 @@ Render’s **free tier** lets you run one **Web Service** (no Blueprint required
 
 - **Auto-deploy**: By default, pushes to the connected branch trigger a new deploy.
 - **Secrets**: Never commit Neon or Google secrets; keep them only in Render’s Environment.
+
+**Neon SSL error (SslStream / connection to database 'neondb'):** Add env var `ConnectionStrings__AppendTrustServerCertificate` = `true`. The app will append `Trust Server Certificate=true` to the Neon connection string so the Docker image can connect without full CA validation.
+
+**Port scan timeout / no open ports:** The app binds to `PORT` and runs migrations in the background after startup, so Render should see the port. If you still get “no open ports”, ensure `PORT` is set by Render (it usually is) and that no env var overrides `ASPNETCORE_URLS` with a different port.
 
 **Exit status 139 (crash/segfault):** The Dockerfile uses `linux/amd64` and `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` to reduce this. If it still happens on Render’s free tier (512 MB RAM), try upgrading to a paid instance with more memory, or add env var `DOTNET_GCHeapHardLimit` (e.g. `0x1E000000` for ~480 MB) to cap GC and avoid OOM kills that can look like 139.
 

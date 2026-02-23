@@ -1,0 +1,136 @@
+@page "/manage-users"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@inject IUserManagementService UserManagementService
+
+<PageTitle>Manage users</PageTitle>
+
+<h1>Manage users</h1>
+
+@if (_loading)
+{
+    <p>Loading…</p>
+}
+else if (_error is { Length: > 0 })
+{
+    <div class="alert alert-warning">@_error</div>
+}
+else
+{
+    <p class="text-muted mb-3">Change user roles below. Only Admin can access this page.</p>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    @foreach (var role in _roleNames)
+                    {
+                        <th class="text-center">@role</th>
+                    }
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in _users)
+                {
+                    var userId = u.Id;
+                    var saving = _savingUserId == userId;
+                    <tr>
+                        <td>@u.UserName</td>
+                        <td>@(u.Email ?? "—")</td>
+                        @foreach (var role in _roleNames)
+                        {
+                            var inRole = _selectedRoles.TryGetValue(userId, out var roles) && roles.Contains(role);
+                            <td class="text-center">
+                                <input type="checkbox" checked="@inRole" disabled="@saving"
+                                       @onchange="e => ToggleRole(userId, role, (bool)(e.Value ?? false))" />
+                            </td>
+                        }
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" disabled="@saving" @onclick="() => SaveUserRolesAsync(userId)">
+                                @(saving ? "Saving…" : "Save")
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    if (_users.Count == 0)
+    {
+        <p class="text-muted">No users.</p>
+    }
+}
+
+@code {
+    private List<UserWithRolesDto> _users = new();
+    private IReadOnlyList<string> _roleNames = Array.Empty<string>();
+    private Dictionary<string, List<string>> _selectedRoles = new();
+    private bool _loading = true;
+    private string _error = "";
+    private string? _savingUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = "";
+        try
+        {
+            _roleNames = await UserManagementService.GetRoleNamesAsync();
+            _users = (await UserManagementService.GetUsersWithRolesAsync()).ToList();
+            _selectedRoles = _users.ToDictionary(u => u.Id, u => u.Roles.ToList());
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ToggleRole(string userId, string role, bool isChecked)
+    {
+        if (!_selectedRoles.TryGetValue(userId, out var roles))
+        {
+            roles = new List<string>();
+            _selectedRoles[userId] = roles;
+        }
+        if (isChecked && !roles.Contains(role))
+            roles.Add(role);
+        else if (!isChecked)
+            roles.Remove(role);
+    }
+
+    private async Task SaveUserRolesAsync(string userId)
+    {
+        if (!_selectedRoles.TryGetValue(userId, out var roles))
+            return;
+        _savingUserId = userId;
+        _error = "";
+        try
+        {
+            var (success, err) = await UserManagementService.UpdateUserRolesAsync(userId, roles);
+            if (success)
+            {
+                var u = _users.FirstOrDefault(x => x.Id == userId);
+                if (u != null)
+                    _users = _users.Select(x => x.Id == userId ? new UserWithRolesDto(x.Id, x.UserName, x.Email, roles) : x).ToList();
+            }
+            else
+                _error = err ?? "Update failed.";
+        }
+        finally
+        {
+            _savingUserId = null;
+            StateHasChanged();
+        }
+    }
+}

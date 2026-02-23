@@ -48,6 +48,16 @@
             </NavLink>
         </div>
         <div class="nav-item px-2">
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <NavLink class="nav-link" href="manage-users" Match="NavLinkMatch.Prefix">
+                        <span class="bi bi-people" aria-hidden="true"></span>
+                        <span class="nav-link-text">Manage users</span>
+                    </NavLink>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+        <div class="nav-item px-2">
             <AuthorizeView>
                 <Authorized>
                     <a href="Account/Logout" class="nav-link">

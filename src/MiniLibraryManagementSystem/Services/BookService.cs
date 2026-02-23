@@ -28,16 +28,21 @@ public class BookService : IBookService
     {
         var list = await _db.Books
             .Include(b => b.Genre)
+            .Include(b => b.Loans.Where(l => l.ReturnedAt == null))
             .OrderBy(b => b.Title)
-            .Select(b => BookDto.FromEntity(b))
             .ToListAsync(ct);
-        return list;
+        return list.Select(b => BookDto.FromEntity(b, b.Loans.FirstOrDefault()?.DueDate)).ToList();
     }
 
     public async Task<BookDto?> GetBookByIdAsync(int id, CancellationToken ct = default)
     {
-        var book = await _db.Books.Include(b => b.Genre).FirstOrDefaultAsync(b => b.Id == id, ct);
-        return book is null ? null : BookDto.FromEntity(book);
+        var book = await _db.Books
+            .Include(b => b.Genre)
+            .Include(b => b.Loans.Where(l => l.ReturnedAt == null))
+            .FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (book is null) return null;
+        var dueDate = book.Loans.FirstOrDefault()?.DueDate;
+        return BookDto.FromEntity(book, dueDate);
     }
 
     public async Task<(bool Success, BookDto? Book, string? Error)> CreateBookAsync(CreateBookDto dto, CancellationToken ct = default)
@@ -63,7 +68,7 @@ public class BookService : IBookService
         _db.Books.Add(book);
         await _db.SaveChangesAsync(ct);
         await _db.Entry(book).Reference(b => b.Genre).LoadAsync(ct);
-        return (true, BookDto.FromEntity(book), null);
+        return (true, BookDto.FromEntity(book, null), null);
     }
 
     public async Task<(bool Success, BookDto? Book, string? Error)> UpdateBookAsync(int id, UpdateBookDto dto, CancellationToken ct = default)
@@ -88,7 +93,7 @@ public class BookService : IBookService
         book.EaseOfReading = EaseOfReadingService.Estimate(book);
 
         await _db.SaveChangesAsync(ct);
-        return (true, BookDto.FromEntity(book), null);
+        return (true, BookDto.FromEntity(book, null), null);
     }
 
     public async Task<(bool Success, string? Error)> DeleteBookAsync(int id, CancellationToken ct = default)

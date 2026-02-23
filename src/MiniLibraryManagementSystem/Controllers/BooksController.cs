@@ -26,19 +26,23 @@ public class BooksController : ControllerBase
     {
         var list = await _db.Books
             .Include(b => b.Genre)
+            .Include(b => b.Loans.Where(l => l.ReturnedAt == null))
             .OrderBy(b => b.Title)
-            .Select(b => BookDto.FromEntity(b))
             .ToListAsync(ct);
-        return Ok(list);
+        return Ok(list.Select(b => BookDto.FromEntity(b, b.Loans.FirstOrDefault()?.DueDate)).ToList());
     }
 
     [HttpGet("{id:int}")]
     [AllowAnonymous]
     public async Task<ActionResult<BookDto>> GetBook(int id, CancellationToken ct)
     {
-        var book = await _db.Books.Include(b => b.Genre).FirstOrDefaultAsync(b => b.Id == id, ct);
+        var book = await _db.Books
+            .Include(b => b.Genre)
+            .Include(b => b.Loans.Where(l => l.ReturnedAt == null))
+            .FirstOrDefaultAsync(b => b.Id == id, ct);
         if (book is null) return NotFound();
-        return Ok(BookDto.FromEntity(book));
+        var dueDate = book.Loans.FirstOrDefault()?.DueDate;
+        return Ok(BookDto.FromEntity(book, dueDate));
     }
 
     [HttpPost]
@@ -63,7 +67,7 @@ public class BooksController : ControllerBase
         _db.Books.Add(book);
         await _db.SaveChangesAsync(ct);
         await _db.Entry(book).Reference(b => b.Genre).LoadAsync(ct);
-        return CreatedAtAction(nameof(GetBook), new { id = book.Id }, BookDto.FromEntity(book));
+        return CreatedAtAction(nameof(GetBook), new { id = book.Id }, BookDto.FromEntity(book, null));
     }
 
     [HttpPut("{id:int}")]
@@ -86,7 +90,7 @@ public class BooksController : ControllerBase
         book.EaseOfReading = EaseOfReadingService.Estimate(book);
 
         await _db.SaveChangesAsync(ct);
-        return Ok(BookDto.FromEntity(book));
+        return Ok(BookDto.FromEntity(book, null));
     }
 
     [HttpDelete("{id:int}")]

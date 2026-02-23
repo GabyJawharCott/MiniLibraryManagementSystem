@@ -27,7 +27,7 @@ public class SearchController : ControllerBase
         [FromQuery] int? genreId,
         CancellationToken ct)
     {
-        var query = _db.Books.Include(b => b.Genre).AsQueryable();
+        var query = _db.Books.Include(b => b.Genre).Include(b => b.Loans.Where(l => l.ReturnedAt == null)).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -46,7 +46,7 @@ public class SearchController : ControllerBase
         if (genreId.HasValue)
             query = query.Where(b => b.GenreId == genreId.Value);
 
-        var list = await query.OrderBy(b => b.Title).Select(b => BookDto.FromEntity(b)).ToListAsync(ct);
-        return Ok(list);
+        var list = await query.OrderBy(b => b.Title).ToListAsync(ct);
+        return Ok(list.Select(b => BookDto.FromEntity(b, b.Loans.FirstOrDefault()?.DueDate)).ToList());
     }
 }

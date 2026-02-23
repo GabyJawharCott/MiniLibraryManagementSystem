@@ -1,18 +1,23 @@
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 @rendermode InteractiveServer
 
 <div class="d-flex flex-column align-items-center justify-content-center p-4">
-    <p class="text-muted">Redirecting to sign in…</p>
+    <p class="text-muted">@(_message)</p>
 </div>
 
 @code {
-    protected override void OnAfterRender(bool firstRender)
+    private string _message = "Redirecting…";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
-            if (path != "/login" && path != "")
-                Navigation.NavigateTo("/login", forceLoad: true);
-        }
+        if (!firstRender) return;
+        var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+        if (path == "/login" || path == "") return;
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        var target = state.User?.Identity?.IsAuthenticated == true ? "/books" : "/login";
+        _message = target == "/books" ? "Redirecting to books…" : "Redirecting to sign in…";
+        StateHasChanged();
+        Navigation.NavigateTo(target, forceLoad: true);
     }
 }

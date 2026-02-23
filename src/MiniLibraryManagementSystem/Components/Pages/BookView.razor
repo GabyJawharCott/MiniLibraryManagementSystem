@@ -28,7 +28,7 @@ else
         <dt class="col-sm-3">Pages</dt>
         <dd class="col-sm-9">@_book.PageCount</dd>
         <dt class="col-sm-3">Status</dt>
-        <dd class="col-sm-9">@_book.Status</dd>
+        <dd class="col-sm-9">@_book.StatusDisplay</dd>
         @if (_book.EstimatedReadingMinutes.HasValue)
         {
             <dt class="col-sm-3">Reading time</dt>

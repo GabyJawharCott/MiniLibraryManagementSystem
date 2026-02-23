@@ -49,8 +49,11 @@ public class LoanService : ILoanService
             .Include(l => l.User)
             .AsQueryable();
         if (!isStaff && !string.IsNullOrEmpty(userId))
+        {
             query = query.Where(l => l.UserId == userId);
-        if (activeOnly)
+            query = query.Where(l => l.ReturnedAt == null);
+        }
+        else if (activeOnly)
             query = query.Where(l => l.ReturnedAt == null);
         var list = await query.OrderByDescending(l => l.BorrowedAt).ToListAsync(ct);
         return list.Select(LoanDto.FromEntity).ToList();

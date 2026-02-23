@@ -25,10 +25,10 @@ stages:
         displayName: 'Build .NET app'
         steps:
           - task: UseDotNet@2
-            displayName: 'Use .NET 9'
+            displayName: 'Use .NET 10'
             inputs:
               packageType: 'sdk'
-              version: '9.x'
+              version: '10.x'
               installationType: 'latestVersion'
 
           - task: DotNetCoreCLI@2
@@ -81,4 +81,4 @@ stages:
                     appType: 'webAppLinux'
                     appName: '$(AzureWebAppName)'
                     package: '$(Pipeline.Workspace)/drop'
-                    runtimeStack: 'DOTNETCORE|9.0'
+                    runtimeStack: 'DOTNETCORE|10.0'

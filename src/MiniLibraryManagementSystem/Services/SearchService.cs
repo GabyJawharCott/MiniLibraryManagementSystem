@@ -15,7 +15,7 @@ public class SearchService : ISearchService
 
     public async Task<List<BookDto>> SearchAsync(string? q, string? author, int? minPages, int? maxPages, int? genreId, string? level = null, CancellationToken ct = default)
     {
-        var query = _db.Books.Include(b => b.Genre).AsQueryable();
+        var query = _db.Books.Include(b => b.Genre).Include(b => b.Loans.Where(l => l.ReturnedAt == null)).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -36,8 +36,8 @@ public class SearchService : ISearchService
         if (!string.IsNullOrWhiteSpace(level))
             query = query.Where(b => b.EaseOfReading != null && b.EaseOfReading == level);
 
-        var list = await query.OrderBy(b => b.Title).Select(b => BookDto.FromEntity(b)).ToListAsync(ct);
-        return list;
+        var list = await query.Include(b => b.Loans.Where(l => l.ReturnedAt == null)).OrderBy(b => b.Title).ToListAsync(ct);
+        return list.Select(b => BookDto.FromEntity(b, b.Loans.FirstOrDefault()?.DueDate)).ToList();
     }
 
     public async Task<List<GenreOption>> GetGenresAsync(CancellationToken ct = default)

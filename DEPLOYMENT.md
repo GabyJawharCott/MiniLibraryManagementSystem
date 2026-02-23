@@ -5,7 +5,7 @@ This guide gets the app online with your **Neon (PostgreSQL)** database and make
 ## Prerequisites
 
 - **Database**: Neon (PostgreSQL) — you already have this. Use the connection string from the Neon dashboard (e.g. `Host=...;Database=...;Username=...;Password=...;SSL Mode=Require`).
-- **Host**: A web host (e.g. **Render** or **Azure App Service**). The app runs in Docker on Render; on Azure it can run as a .NET 9 Web App.
+- **Host**: A web host (e.g. **Render** or **Azure App Service**). The app runs in Docker on Render; on Azure it can run as a .NET 10 Web App.
 - **Google OAuth**: Client ID and Client Secret for your **production URL** (add the deploy URL to Authorized redirect URIs and origins in Google Cloud Console).
 
 ## Quick path: Deploy with Neon
@@ -121,7 +121,7 @@ The repo includes `**azure-pipelines.yml`** for Azure DevOps. It builds on every
 ### 7.2 Azure resources
 
 1. **Azure App Service (Web App)**
-  - In Azure Portal, create a **Web App** (e.g. **Linux**, runtime **.NET 9** or **Docker** if you use the project’s Dockerfile).  
+  - In Azure Portal, create a **Web App** (e.g. **Linux**, runtime **.NET 10** or **Docker** if you use the project’s Dockerfile).  
   - Note the app name (e.g. `minilibrary-web`). The URL will be `https://<app-name>.azurewebsites.net`.
 2. **Database**
   - **Using Neon (PostgreSQL)**: Use your existing Neon connection string. No Azure SQL needed. In App Service configuration set `DatabaseProvider` = `PostgreSQL` and `ConnectionStrings__DefaultConnection` = your Neon URL.  

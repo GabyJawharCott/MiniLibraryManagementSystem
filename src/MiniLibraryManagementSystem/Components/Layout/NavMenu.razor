@@ -1,7 +1,7 @@
 <input type="checkbox" id="sidebar-collapse" class="sidebar-collapse-checkbox" aria-label="Collapse sidebar" />
 <div class="top-row ps-2 navbar navbar-dark">
     <div class="d-flex align-items-center w-100">
-        <a class="navbar-brand text-nowrap" href="dashboard">Gaby's Books</a>
+        <a class="navbar-brand text-nowrap" href="books">Gaby's Books</a>
         <label for="sidebar-collapse" class="sidebar-toggle btn btn-link p-0 ms-auto" title="Collapse sidebar">
             <span class="sidebar-toggle-icon sidebar-toggle-collapse">◀</span>
             <span class="sidebar-toggle-icon sidebar-toggle-expand">▶</span>
@@ -14,10 +14,20 @@
 <div class="nav-scrollable" onclick="document.getElementById('nav-toggler')?.click()">
     <nav class="nav flex-column">
         <div class="nav-item px-2">
-            <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.Prefix">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span>
-                <span class="nav-link-text">Home</span>
-            </NavLink>
+            <AuthorizeView Roles="Admin,Librarian">
+                <Authorized>
+                    <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.Prefix">
+                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span>
+                        <span class="nav-link-text">Dashboard</span>
+                    </NavLink>
+                </Authorized>
+                <NotAuthorized>
+                    <NavLink class="nav-link" href="books" Match="NavLinkMatch.Prefix">
+                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span>
+                        <span class="nav-link-text">Home</span>
+                    </NavLink>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
         <div class="nav-item px-2">
             <NavLink class="nav-link" href="books">

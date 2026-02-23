@@ -1,6 +1,6 @@
 @page "/dashboard"
 @rendermode InteractiveServer
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin,Librarian")]
 @inject IBookService BookService
 @inject ILoanService LoanService
 @inject AuthenticationStateProvider AuthStateProvider

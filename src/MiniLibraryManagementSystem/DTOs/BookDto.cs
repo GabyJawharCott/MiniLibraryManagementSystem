@@ -16,10 +16,17 @@ public record BookDto(
     int? EstimatedReadingMinutes,
     string? EaseOfReading,
     string Status,
+    /// <summary>When status is Borrowed, the due date of the current loan; null otherwise.</summary>
+    DateTime? BorrowedDueDate,
     DateTime CreatedAt,
     DateTime UpdatedAt)
 {
-    public static BookDto FromEntity(Book b) => new(
+    /// <summary>Display text for status: when Borrowed and BorrowedDueDate is set, use e.g. "Borrowed (due YYYY-MM-DD)".</summary>
+    public string StatusDisplay => Status == "Borrowed" && BorrowedDueDate.HasValue
+        ? $"Borrowed (due {BorrowedDueDate.Value:yyyy-MM-dd})"
+        : Status;
+
+    public static BookDto FromEntity(Book b, DateTime? borrowedDueDate = null) => new(
         b.Id,
         b.Title,
         b.Author,
@@ -33,6 +40,7 @@ public record BookDto(
         b.EstimatedReadingMinutes,
         b.EaseOfReading,
         b.Status.ToString(),
+        borrowedDueDate,
         b.CreatedAt,
         b.UpdatedAt);
 }

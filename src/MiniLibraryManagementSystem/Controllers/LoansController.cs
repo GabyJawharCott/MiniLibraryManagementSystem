@@ -35,8 +35,11 @@ public class LoansController : ControllerBase
             .Include(l => l.User)
             .AsQueryable();
         if (!IsStaff && CurrentUserId != null)
+        {
             query = query.Where(l => l.UserId == CurrentUserId);
-        if (activeOnly == true)
+            query = query.Where(l => l.ReturnedAt == null);
+        }
+        else if (activeOnly == true)
             query = query.Where(l => l.ReturnedAt == null);
         var list = await query.OrderByDescending(l => l.BorrowedAt).Select(l => LoanDto.FromEntity(l)).ToListAsync(ct);
         return Ok(list);

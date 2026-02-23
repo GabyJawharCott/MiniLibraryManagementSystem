@@ -80,7 +80,7 @@ else
                     <td>@b.PageCount</td>
                     <td>@(b.EstimatedReadingMinutes.HasValue ? b.EstimatedReadingMinutes + " min" : "-")</td>
                     <td>@(b.EaseOfReading ?? "-")</td>
-                    <td>@b.Status</td>
+                    <td>@b.StatusDisplay</td>
                     <td>
                         <a href="/books/view/@b.Id" class="btn btn-sm btn-outline-primary me-1">View</a>
                         @if (b.Status == "Available")

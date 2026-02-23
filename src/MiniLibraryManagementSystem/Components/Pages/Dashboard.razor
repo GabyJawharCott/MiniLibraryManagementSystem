@@ -78,9 +78,8 @@
     private string _error = "";
     private bool _isStaff;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (!firstRender) return;
         _error = "";
         try
         {
